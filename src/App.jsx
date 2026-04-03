@@ -66,11 +66,22 @@ const App = () => {
   const [hasBingo, setHasBingo] = useState(false);
   const [bingoColors, setBingoColors] = useState([]);
   const [showRules, setShowRules] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
 
   // Inicjalizacja gry
   useEffect(() => {
     startNewGame();
   }, []);
+
+  // Timer logic
+  useEffect(() => {
+    if (timeLeft > 0 && !hasBingo) {
+      const timer = setInterval(() => {
+        setTimeLeft(prev => Math.max(0, prev - 0.1));
+      }, 100);
+      return () => clearInterval(timer);
+    }
+  }, [timeLeft, hasBingo]);
 
   const startNewGame = () => {
     setBoard(generateBoard());
@@ -82,6 +93,7 @@ const App = () => {
     setMarkedCells(initialMarked);
     setHasBingo(false);
     setBingoColors([]);
+    setTimeLeft(0);
   };
 
   const drawBall = useCallback(() => {
@@ -100,6 +112,7 @@ const App = () => {
     else letter = 'O';
 
     setDrawnBalls(prev => [{ letter, num: newBall }, ...prev]);
+    setTimeLeft(5); // Reset timer to 5 seconds
   }, [drawnBalls, hasBingo]);
 
   const toggleCell = (row, col) => {
@@ -113,25 +126,28 @@ const App = () => {
     // Sprawdzamy czy na planszy jest zaznaczone
     const isCurrentlyMarked = markedCells[row][col];
 
-    // ZMIANA: Można zaznaczyć TYLKO jeśli kliknięta liczba to ostatnio wylosowana kula
+    // Można zaznaczyć TYLKO jeśli kliknięta liczba to ostatnio wylosowana kula I czas nie minął
     const lastDrawnBall = drawnBalls[0];
     const isLastDrawn = lastDrawnBall && lastDrawnBall.num === cellValue;
     
-    // Jeśli nie jest zaznaczone, pozwalamy na to tylko dla ostatniej kuli
-    if (!isCurrentlyMarked && !isLastDrawn) {
-      return;
-    }
-
-    // Pozwalamy odznaczyć błędnie zaznaczone pole (jeśli ktoś np. kliknął przed chwilą przez pomyłkę)
-    // Ale w tej wersji mechaniki "missed" (przegapionych) często nie pozwala się już odznaczać prawidłowych.
-    // Zostawmy możliwość cofnięcia tylko jeśli to ostatnia kula
-    if (isCurrentlyMarked && !isLastDrawn) {
-         return; // Zablokowanie odznaczania starych pól
+    if (!isCurrentlyMarked) {
+      if (!isLastDrawn || timeLeft <= 0) {
+        return;
+      }
+    } else {
+      // Pozwalamy odznaczyć tylko jeśli to nadal ostatnia kula i czas nie minął
+      if (!isLastDrawn || timeLeft <= 0) {
+        return;
+      }
     }
 
     const newMarked = markedCells.map(r => [...r]);
     newMarked[row][col] = !newMarked[row][col];
     setMarkedCells(newMarked);
+    // Jeśli zaznaczono, zatrzymaj timer
+    if (newMarked[row][col]) {
+      setTimeLeft(0);
+    }
     checkForBingo(newMarked);
   };
 
@@ -165,6 +181,7 @@ const App = () => {
 
     if (isBingo) {
       setBingoColors([...new Set(winColors)]);
+      setTimeLeft(0);
     }
     setHasBingo(isBingo);
   };
@@ -226,6 +243,16 @@ const App = () => {
             ))
           )}
         </div>
+
+        {/* Timer Bar */}
+        {timeLeft > 0 && (
+          <div className="w-full h-2 bg-stone-800 rounded-full mt-3 overflow-hidden border border-black/40">
+            <div 
+              className={`h-full transition-all duration-100 ease-linear ${timeLeft < 1.5 ? 'bg-red-500 animate-pulse' : timeLeft < 3 ? 'bg-yellow-500' : 'bg-green-500'}`}
+              style={{ width: `${(timeLeft / 5) * 100}%` }}
+            ></div>
+          </div>
+        )}
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center p-2 z-10">
@@ -242,10 +269,6 @@ const App = () => {
             row.map((cell, colIndex) => {
               const isMarked = markedCells[rowIndex][colIndex];
               const isFree = cell === 'FREE';
-              
-              // Podświetlamy komórkę, jeśli to jest ten numer (dla ułatwienia, opcjonalne)
-               const lastDrawnBall = drawnBalls[0];
-               const isLastDrawn = lastDrawnBall && lastDrawnBall.num === cell;
 
               return (
                 <button
@@ -254,7 +277,6 @@ const App = () => {
                   className={`
                     relative aspect-[4/5] rounded shadow-sm overflow-hidden flex flex-col items-center justify-center font-black text-2xl transition-all duration-200
                     ${isMarked ? 'bg-[#fef3c7] text-stone-800 border-b-4 border-[#fcd34d]' : 'bg-[#fffbeb] text-stone-900 border-b-4 border-[#fde68a] hover:bg-white active:bg-[#fde68a]'}
-                    ${isLastDrawn && !isMarked ? 'ring-2 ring-red-500 animate-pulse' : ''} 
                   `}
                 >
                   {isMarked ? (
@@ -307,8 +329,8 @@ const App = () => {
             <ul className="text-left space-y-3 mb-6 text-sm text-stone-200 font-semibold bg-[#1c1917] p-4 rounded-lg border-2 border-stone-800 shadow-inner">
               <li>🎱 Naciskaj <span className="text-yellow-400">"LOSUJ KULĘ"</span>, aby odkrywać nowe liczby.</li>
               <li>🔍 Szukaj wylosowanego numeru w odpowiedniej kolumnie (B, I, N, G, O).</li>
-              <li>⏳ <strong className="text-red-400">Uwaga! Możesz zaznaczyć pole tylko dla OSTATNIO wylosowanej kuli.</strong></li>
-              <li>⭐ Środkowe pole jest darmowe i od razu zaliczone.</li>
+              <li>⏳ <strong className="text-red-400">UWAGA! Masz tylko 5 SEKUND na zaznaczenie numeru!</strong></li>
+              <li>👀 Brak podświetleń na planszy - polegaj na własnym oku!</li>
               <li>🏆 Zaznacz 5 pól w pionie, poziomie lub na skos, aby wygrać!</li>
             </ul>
             <button
