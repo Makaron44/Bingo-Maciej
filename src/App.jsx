@@ -223,6 +223,28 @@ const App = () => {
     }
   };
 
+  const getBallColor = (letter) => {
+    switch (letter) {
+      case 'B': return 'bg-red-500';
+      case 'I': return 'bg-yellow-500';
+      case 'N': return 'bg-green-500';
+      case 'G': return 'bg-blue-500';
+      case 'O': return 'bg-purple-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getTextColor = (letter) => {
+    switch (letter) {
+      case 'B': return 'text-red-500';
+      case 'I': return 'text-yellow-500';
+      case 'N': return 'text-green-500';
+      case 'G': return 'text-blue-500';
+      case 'O': return 'text-purple-500';
+      default: return 'text-gray-500';
+    }
+  };
+
   return (
     <div className={`flex flex-col h-screen ${theme.bg} text-white font-sans max-w-md mx-auto relative shadow-2xl overflow-hidden`}>
       {hasBingo && <Confetti colors={bingoColors} />}
