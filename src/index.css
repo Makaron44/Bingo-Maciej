@@ -32,6 +32,22 @@ body {
   100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
 }
 
+@keyframes win-blink {
+  0%, 100% { 
+    filter: brightness(1) drop-shadow(0 0 0px #fbbf24);
+    transform: scale(1);
+  }
+  50% { 
+    filter: brightness(1.5) drop-shadow(0 0 15px #fbbf24);
+    transform: scale(1.05);
+    background-color: #fef3c7;
+  }
+}
+
+.animate-win-blink {
+  animation: win-blink 0.6s ease-in-out infinite;
+}
+
 /* Custom styles for Bingo grid/buttons if needed across Tailwind */
 @theme {
   --animate-bounce-short: bounce-short 0.3s ease-in-out;
